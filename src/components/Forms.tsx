@@ -1,5 +1,8 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useStore } from '../db';
+import { useAuth } from '../auth';
+import { supabase } from '../supabase';
+import { ExamImage } from './ExamImage';
 import type { Appointment, AppointmentStatus, Exam, Patient, Procedure, ProcedureStatus } from '../types';
 import { ALL_TEETH, EXAM_TYPES, FACES, PROCEDURE_TYPES, toothInfo } from '../teeth';
 import { compressImage, nowLocalInput, STATUS_LABEL, todayISO } from '../utils';
@@ -47,6 +50,7 @@ const ToothOptions = () => (
 
 export function PatientForm({ initial, onDone }: { initial?: Patient; onDone: (p?: Patient) => void }) {
   const { upsert, removePatient } = useStore();
+  const { can } = useAuth();
   const [f, setF] = useState<Partial<Patient>>(initial ?? {});
   const s = (k: keyof Patient) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
 
@@ -85,7 +89,7 @@ export function PatientForm({ initial, onDone }: { initial?: Patient; onDone: (p
       <Actions
         onCancel={() => onDone()}
         onDelete={
-          initial
+          initial && can.admin
             ? () => {
                 if (confirm(`Excluir ${initial.nome} e TODO o histórico dele(a)? Isso não pode ser desfeito.`)) {
                   removePatient(initial.id);
@@ -113,8 +117,9 @@ export function ProcedureForm({
   onDone: () => void;
 }) {
   const { upsert, remove } = useStore();
+  const { profile } = useAuth();
   const [f, setF] = useState<Partial<Procedure>>(
-    initial ?? { dente: dente ?? null, tipo: 'Restauração', status: 'realizado', data: todayISO(), faces: [] },
+    initial ?? { dentistaId: profile?.role === 'master' ? undefined : profile?.id, dente: dente ?? null, tipo: 'Restauração', status: 'realizado', data: todayISO(), faces: [] },
   );
 
   const submit = (e: FormEvent) => {
@@ -200,7 +205,7 @@ export function ProcedureForm({
 /* ---------------- Exame / Raio-X ---------------- */
 
 export function ExamForm({ patientId, initial, dente, onDone }: { patientId: string; initial?: Exam; dente?: number | null; onDone: () => void }) {
-  const { upsert, remove } = useStore();
+  const { upsert, remove, clinicId } = useStore();
   const [f, setF] = useState<Partial<Exam>>(
     initial ?? { tipo: 'Raio-X periapical', data: todayISO(), dentes: dente != null ? [dente] : [], imagens: [] },
   );
@@ -211,10 +216,19 @@ export function ExamForm({ patientId, initial, dente, onDone }: { patientId: str
     if (!files?.length) return;
     setBusy(true);
     try {
-      const imgs = await Promise.all([...files].map((file) => compressImage(file)));
-      setF((cur) => ({ ...cur, imagens: [...(cur.imagens ?? []), ...imgs] }));
-    } catch {
-      alert('Não foi possível ler a imagem. Use JPG ou PNG.');
+      const paths = await Promise.all(
+        [...files].map(async (file) => {
+          const dataUrl = await compressImage(file);
+          const blob = await (await fetch(dataUrl)).blob();
+          const path = `${clinicId}/${patientId}/${crypto.randomUUID()}.jpg`;
+          const { error } = await supabase.storage.from('exames').upload(path, blob, { contentType: 'image/jpeg' });
+          if (error) throw error;
+          return path;
+        }),
+      );
+      setF((cur) => ({ ...cur, imagens: [...(cur.imagens ?? []), ...paths] }));
+    } catch (e) {
+      alert('Não foi possível enviar a imagem: ' + ((e as Error).message ?? 'use JPG ou PNG.'));
     } finally {
       setBusy(false);
     }
@@ -226,7 +240,11 @@ export function ExamForm({ patientId, initial, dente, onDone }: { patientId: str
       .split(/[\s,;]+/)
       .map(Number)
       .filter((n) => ALL_TEETH.includes(n));
+    if (busy) return alert('Aguarde o envio da imagem terminar.');
     upsert('exams', { ...f, dentes, patientId, imagens: f.imagens ?? [] } as Exam);
+    // imagens removidas na edição saem do servidor
+    const gone = (initial?.imagens ?? []).filter((x) => !(f.imagens ?? []).includes(x) && !x.startsWith('data:'));
+    if (gone.length) supabase.storage.from('exames').remove(gone);
     onDone();
   };
 
@@ -246,13 +264,19 @@ export function ExamForm({ patientId, initial, dente, onDone }: { patientId: str
       <Field label="Imagens (raio-X, foto…)" full>
         <input type="file" accept="image/*" multiple onChange={(e) => addFiles(e.target.files)} />
       </Field>
-      {busy && <p className="muted full">Processando imagem…</p>}
+      {busy && <p className="muted full">Enviando imagem…</p>}
       {!!f.imagens?.length && (
         <div className="thumbs full">
           {f.imagens.map((src, i) => (
             <div key={i} className="thumb">
-              <img src={src} alt="" />
-              <button type="button" className="icon-btn" onClick={() => setF({ ...f, imagens: f.imagens!.filter((_, j) => j !== i) })} aria-label="Remover imagem">
+              <ExamImage path={src} alt="" />
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={() => {
+                  if (!src.startsWith('data:') && !initial?.imagens.includes(src)) supabase.storage.from('exames').remove([src]);
+                  setF({ ...f, imagens: f.imagens!.filter((_, j) => j !== i) });
+                }} aria-label="Remover imagem">
                 ✕
               </button>
             </div>
@@ -262,7 +286,7 @@ export function ExamForm({ patientId, initial, dente, onDone }: { patientId: str
       <Field label="Laudo / observações" full>
         <textarea rows={3} value={f.descricao ?? ''} onChange={(e) => setF({ ...f, descricao: e.target.value })} />
       </Field>
-      <Actions onCancel={onDone} onDelete={initial ? () => confirm('Excluir este exame?') && (remove('exams', initial.id), onDone()) : undefined} />
+      <Actions onCancel={onDone} onDelete={initial ? () => confirm('Excluir este exame e as imagens?') && (remove('exams', initial.id), onDone()) : undefined} />
     </form>
   );
 }
@@ -279,8 +303,17 @@ export const APPT_LABEL: Record<AppointmentStatus, string> = {
 
 export function AppointmentForm({ initial, patientId, dataHora, onDone }: { initial?: Appointment; patientId?: string; dataHora?: string; onDone: () => void }) {
   const { db, upsert, remove } = useStore();
+  const { profile } = useAuth();
+  const dentistas = db.profiles.filter((p) => p.ativo && (p.role === 'admin' || p.role === 'dentista'));
   const [f, setF] = useState<Partial<Appointment>>(
-    initial ?? { patientId, dataHora: dataHora ?? nowLocalInput(), duracaoMin: 30, motivo: '', status: 'agendada' },
+    initial ?? {
+      patientId,
+      dataHora: dataHora ?? nowLocalInput(),
+      duracaoMin: 30,
+      motivo: '',
+      status: 'agendada',
+      dentistaId: dentistas.find((d) => d.id === profile?.id)?.id ?? (dentistas.length === 1 ? dentistas[0].id : undefined),
+    },
   );
   const patients = [...db.patients].sort((a, b) => a.nome.localeCompare(b.nome));
 
@@ -299,8 +332,16 @@ export function AppointmentForm({ initial, patientId, dataHora, onDone }: { init
         </select>
       </Field>
       <Field label="Data e hora *">
-        <input type="datetime-local" required value={f.dataHora ?? ''} onChange={(e) => setF({ ...f, dataHora: e.target.value })} />
+        <input type="datetime-local" required value={(f.dataHora ?? '').slice(0, 16)} onChange={(e) => setF({ ...f, dataHora: e.target.value })} />
       </Field>
+      {dentistas.length > 0 && (
+        <Field label="Dentista">
+          <select value={f.dentistaId ?? ''} onChange={(e) => setF({ ...f, dentistaId: e.target.value || undefined })}>
+            <option value="">—</option>
+            {dentistas.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
+          </select>
+        </Field>
+      )}
       <Field label="Duração">
         <select value={f.duracaoMin} onChange={(e) => setF({ ...f, duracaoMin: Number(e.target.value) })}>
           {[15, 30, 45, 60, 90, 120].map((m) => <option key={m} value={m}>{m} min</option>)}

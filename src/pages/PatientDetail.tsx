@@ -5,6 +5,8 @@ import { Legend, Odontogram, STATE_COLORS } from '../components/Odontogram';
 import { Lightbox, Modal } from '../components/Modal';
 import { APPT_LABEL, AppointmentForm, ExamForm, PatientForm, ProcedureForm } from '../components/Forms';
 import { WhatsButton } from '../components/WhatsButton';
+import { ExamImage } from '../components/ExamImage';
+import { useAuth } from '../auth';
 import { toothInfo } from '../teeth';
 import type { Appointment, Exam, Procedure } from '../types';
 import {
@@ -30,6 +32,7 @@ type Dialog =
 export function PatientDetail() {
   const { id } = useParams();
   const { db } = useStore();
+  const { can } = useAuth();
   const [selected, setSelected] = useState<number | null>(null);
   const [decidua, setDecidua] = useState(() => {
     const p = db.patients.find((x) => x.id === id);
@@ -38,7 +41,7 @@ export function PatientDetail() {
   });
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [img, setImg] = useState<string | null>(null);
-  const [tab, setTab] = useState<'hist' | 'exames' | 'consultas'>('hist');
+  const [tab, setTab] = useState<'hist' | 'exames' | 'consultas'>(can.clinical ? 'hist' : 'consultas');
 
   const patient = db.patients.find((p) => p.id === id);
   const procs = useMemo(() => db.procedures.filter((p) => p.patientId === id).sort((a, b) => b.data.localeCompare(a.data)), [db.procedures, id]);
@@ -86,6 +89,7 @@ export function PatientDetail() {
         </div>
       </header>
 
+      {can.clinical && (
       <section className="card odonto-card">
         <div className="odonto-head">
           <h2>Odontograma</h2>
@@ -130,7 +134,7 @@ export function PatientDetail() {
                   <div key={e.id} className="exam-item">
                     <div className="exam-imgs">
                       {e.imagens.map((src, i) => (
-                        <img key={i} src={src} alt={e.tipo} onClick={() => setImg(src)} />
+                        <ExamImage key={i} path={src} alt={e.tipo} onClick={() => setImg(src)} />
                       ))}
                     </div>
                     <div>
@@ -164,11 +168,12 @@ export function PatientDetail() {
           </aside>
         </div>
       </section>
+      )}
 
       <section className="card">
         <div className="tabs">
-          <button className={tab === 'hist' ? 'on' : ''} onClick={() => setTab('hist')}>Histórico ({procs.length})</button>
-          <button className={tab === 'exames' ? 'on' : ''} onClick={() => setTab('exames')}>Exames ({exams.length})</button>
+          {can.clinical && <button className={tab === 'hist' ? 'on' : ''} onClick={() => setTab('hist')}>Histórico ({procs.length})</button>}
+          {can.clinical && <button className={tab === 'exames' ? 'on' : ''} onClick={() => setTab('exames')}>Exames ({exams.length})</button>}
           <button className={tab === 'consultas' ? 'on' : ''} onClick={() => setTab('consultas')}>Consultas ({appts.length})</button>
           <span className="spacer" />
           {tab === 'hist' && <button className="btn primary sm" onClick={() => setDialog({ k: 'proc' })}>+ Procedimento</button>}
@@ -210,7 +215,7 @@ export function PatientDetail() {
           <div className="gallery">
             {exams.map((e) => (
               <figure key={e.id}>
-                {e.imagens[0] ? <img src={e.imagens[0]} alt={e.tipo} onClick={() => setImg(e.imagens[0])} /> : <div className="noimg">sem imagem</div>}
+                {e.imagens[0] ? <ExamImage path={e.imagens[0]} alt={e.tipo} onClick={() => setImg(e.imagens[0])} /> : <div className="noimg">sem imagem</div>}
                 <figcaption>
                   <b>{e.tipo}</b>
                   <span className="small muted">{fmtDate(e.data)} · {e.dentes.length ? `dentes ${e.dentes.join(', ')}` : 'boca toda'}</span>

@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { ExamImage } from './ExamImage';
 
 export function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
   useEffect(() => {
@@ -27,7 +28,7 @@ export function Lightbox({ src, onClose }: { src: string; onClose: () => void })
   }, [onClose]);
   return (
     <div className="lightbox" onClick={onClose}>
-      <img src={src} alt="Exame ampliado" />
+      <ExamImage path={src} alt="Exame ampliado" />
       <button className="icon-btn light" aria-label="Fechar">✕</button>
     </div>
   );

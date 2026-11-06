@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type MouseEvent } from 'react';
 import type { Exam, Procedure } from '../types';
 import { archTeeth, toothInfo, type ToothKind } from '../teeth';
+import { ExamImage } from './ExamImage';
 import { fmtDate, STATE_LABEL, STATUS_LABEL, toothState, type ToothState } from '../utils';
 
 const W = 820;
@@ -220,7 +221,7 @@ export function Odontogram({ procedures, exams, selected, onSelect, decidua }: P
           )}
           {hv?.exams.length ? (
             <div className="tt-exams">
-              {hv.exams[0].imagens[0] && <img src={hv.exams[0].imagens[0]} alt="" />}
+              {hv.exams[0].imagens[0] && <ExamImage path={hv.exams[0].imagens[0]} alt="" />}
               <span>
                 {hv.exams.length} exame(s)<br />
                 <small>{hv.exams[0].tipo} · {fmtDate(hv.exams[0].data)}</small>

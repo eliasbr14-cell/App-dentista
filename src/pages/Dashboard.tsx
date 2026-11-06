@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../db';
-import { demoData } from '../seed';
+import { useAuth } from '../auth';
 import { WhatsButton } from '../components/WhatsButton';
 import { APPT_LABEL } from '../components/Forms';
 import { age, daysBetween, daysToBirthday, fillTemplate, fmtDate, fmtTime, fmtWeekday, todayISO } from '../utils';
 
 export function Dashboard() {
-  const { db, replaceAll } = useStore();
+  const { db } = useStore();
+  const { can } = useAuth();
   const [range, setRange] = useState(7);
   const today = todayISO();
   const pat = (id: string) => db.patients.find((p) => p.id === id);
@@ -38,12 +39,11 @@ export function Dashboard() {
   if (db.patients.length === 0) {
     return (
       <div className="empty-hero">
-        <div className="big-tooth">🦷</div>
-        <h1>Bem-vindo ao seu consultório digital</h1>
-        <p>Cadastre o primeiro paciente ou carregue dados de exemplo para conhecer o sistema.</p>
+        <img className="hero-logo" src="./simbolo.png" alt="" />
+        <h1>Bem-vindo à {db.settings.nomeClinica}</h1>
+        <p>Comece cadastrando o primeiro paciente.</p>
         <div className="row center">
           <Link className="btn primary" to="/pacientes?novo=1">+ Cadastrar paciente</Link>
-          <button className="btn ghost" onClick={() => replaceAll(demoData())}>Carregar dados de exemplo</button>
         </div>
       </div>
     );
@@ -63,7 +63,7 @@ export function Dashboard() {
         <div className="stat"><b>{todays.length}</b><span>consultas hoje</span></div>
         <div className="stat"><b>{db.patients.length}</b><span>pacientes</span></div>
         <div className="stat"><b>{birthdays.filter((b) => b.dias === 0).length}</b><span>aniversariantes hoje</span></div>
-        <div className="stat"><b>{returns.length}</b><span>retornos a agendar</span></div>
+        {can.clinical && <div className="stat"><b>{returns.length}</b><span>retornos a agendar</span></div>}
       </div>
 
       <div className="grid-2">
@@ -146,7 +146,7 @@ export function Dashboard() {
           </ul>
         </section>
 
-        <section className="card">
+        {can.clinical && <section className="card">
           <h2>🔁 Retornos para agendar</h2>
           {returns.length === 0 && <p className="muted">Nenhum retorno pendente.</p>}
           <ul className="list">
@@ -172,7 +172,7 @@ export function Dashboard() {
               );
             })}
           </ul>
-        </section>
+        </section>}
       </div>
     </div>
   );

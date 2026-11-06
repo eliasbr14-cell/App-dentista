@@ -1,18 +1,17 @@
 import { useState } from 'react';
 import { DEFAULT_SETTINGS, useStore } from '../db';
-import { demoData } from '../seed';
-import type { Database, Settings as S } from '../types';
+import type { Settings as S } from '../types';
 import { fillTemplate, nowLocalInput, todayISO } from '../utils';
 
 const VARS = ['{nome}', '{nome_completo}', '{data}', '{hora}', '{dia_semana}', '{motivo}', '{clinica}', '{dentista}', '{telefone_clinica}', '{endereco}'];
 
 export function Settings() {
-  const { db, saveSettings, replaceAll } = useStore();
+  const { db, saveSettings } = useStore();
   const [f, setF] = useState<S>(db.settings);
-  const [saved, setSaved] = useState(false);
+  const [state, setState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const s = (k: keyof S) => (e: { target: { value: string } }) => {
     setF({ ...f, [k]: e.target.value });
-    setSaved(false);
+    setState('idle');
   };
 
   const sample = { id: 'x', nome: 'Maria Silva', telefone: '', criadoEm: '' };
@@ -22,28 +21,12 @@ export function Settings() {
   const preview = (tpl: string) => fillTemplate(tpl, { patient: sample, settings: f, dataHora: nowLocalInput(tomorrow), motivo: 'Limpeza' });
 
   const exportar = () => {
-    const blob = new Blob([JSON.stringify(db)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ exportadoEm: new Date().toISOString(), ...db }, null, 1)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `backup-consultorio-${todayISO()}.json`;
+    a.download = `backup-imperium-${todayISO()}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
-  };
-
-  const importar = (file?: File) => {
-    if (!file) return;
-    file.text().then((t) => {
-      try {
-        const data = JSON.parse(t) as Database;
-        if (!Array.isArray(data.patients)) throw new Error();
-        if (confirm(`Restaurar backup com ${data.patients.length} paciente(s)? Os dados atuais serão substituídos.`)) {
-          replaceAll(data);
-          setF({ ...DEFAULT_SETTINGS, ...data.settings });
-        }
-      } catch {
-        alert('Arquivo de backup inválido.');
-      }
-    });
   };
 
   const tpl = (k: 'templateAniversario' | 'templateLembrete' | 'templateRetorno', title: string) => (
@@ -64,21 +47,27 @@ export function Settings() {
 
       <form
         className="card"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
-          saveSettings(f);
-          setSaved(true);
+          setState('saving');
+          try {
+            await saveSettings(f);
+            setState('saved');
+          } catch (err) {
+            alert('Erro ao salvar: ' + (err as Error).message);
+            setState('idle');
+          }
         }}
       >
         <h2>Consultório</h2>
         <div className="form-grid">
-          <label className="field"><span>Nome do consultório</span><input value={f.nomeClinica} onChange={s('nomeClinica')} /></label>
-          <label className="field"><span>Nome do dentista</span><input value={f.nomeDentista} onChange={s('nomeDentista')} /></label>
+          <label className="field"><span>Nome do consultório</span><input required value={f.nomeClinica} onChange={s('nomeClinica')} /></label>
+          <label className="field"><span>Assinatura das mensagens (dentista)</span><input placeholder="Ex.: Dr. Fulano — Implantodontista" value={f.nomeDentista} onChange={s('nomeDentista')} /></label>
           <label className="field"><span>Telefone do consultório</span><input value={f.telefoneClinica} onChange={s('telefoneClinica')} /></label>
           <label className="field"><span>Endereço</span><input value={f.endereco} onChange={s('endereco')} /></label>
         </div>
 
-        <h2>Mensagens de WhatsApp</h2>
+        <h2 className="mt">Mensagens de WhatsApp</h2>
         <p className="muted small">
           Variáveis que você pode usar: {VARS.map((v) => <code key={v}>{v}</code>)}
         </p>
@@ -87,39 +76,26 @@ export function Settings() {
         {tpl('templateRetorno', '🔁 Chamar para retorno')}
 
         <div className="form-actions">
-          {saved && <span className="ok">✓ Salvo</span>}
+          {state === 'saved' && <span className="ok">✓ Salvo</span>}
           <span className="spacer" />
-          <button type="button" className="btn ghost" onClick={() => setF({ ...DEFAULT_SETTINGS, nomeClinica: f.nomeClinica, nomeDentista: f.nomeDentista, telefoneClinica: f.telefoneClinica, endereco: f.endereco })}>
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() => setF({ ...f, templateAniversario: DEFAULT_SETTINGS.templateAniversario, templateLembrete: DEFAULT_SETTINGS.templateLembrete, templateRetorno: DEFAULT_SETTINGS.templateRetorno })}
+          >
             Restaurar textos padrão
           </button>
-          <button className="btn primary">Salvar</button>
+          <button className="btn primary" disabled={state === 'saving'}>{state === 'saving' ? 'Salvando…' : 'Salvar'}</button>
         </div>
       </form>
 
       <section className="card">
-        <h2>Backup dos dados</h2>
+        <h2>Cópia dos dados</h2>
         <p className="muted small">
-          Os dados ficam salvos <b>neste navegador, neste computador</b>. Faça backup com frequência (ex.: toda sexta) e guarde o arquivo
-          em local seguro — ele contém dados de saúde dos pacientes (LGPD).
+          Os dados ficam guardados com segurança no servidor (com backup automático). Se quiser uma cópia extra, baixe aqui — o arquivo contém
+          dados de saúde dos pacientes (LGPD), guarde em local seguro.
         </p>
-        <div className="row">
-          <button className="btn primary" onClick={exportar}>⬇ Baixar backup</button>
-          <label className="btn ghost">
-            ⬆ Restaurar backup
-            <input type="file" accept="application/json" hidden onChange={(e) => importar(e.target.files?.[0])} />
-          </label>
-          <span className="spacer" />
-          <button className="btn ghost" onClick={() => confirm('Substituir tudo por dados de exemplo?') && replaceAll(demoData())}>Carregar exemplo</button>
-          <button
-            className="btn danger ghost"
-            onClick={() => {
-              if (confirm('Apagar TODOS os dados? Faça um backup antes!') && confirm('Tem certeza absoluta?'))
-                replaceAll({ versao: 1, patients: [], procedures: [], exams: [], appointments: [], sent: [], settings: db.settings });
-            }}
-          >
-            Apagar tudo
-          </button>
-        </div>
+        <button className="btn ghost" onClick={exportar}>⬇ Baixar cópia (JSON)</button>
       </section>
     </div>
   );

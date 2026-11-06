@@ -37,6 +37,8 @@ export function Agenda() {
   };
 
   const pat = (id: string) => db.patients.find((p) => p.id === id);
+  const dentistas = db.profiles.filter((p) => p.role === 'admin' || p.role === 'dentista');
+  const dentName = (id?: string) => (dentistas.length > 1 ? dentistas.find((d) => d.id === id)?.nome : undefined);
   const label = `${days[0].toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} – ${days[6].toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}`;
 
   return (
@@ -81,6 +83,7 @@ export function Agenda() {
                     </div>
                     <Link to={`/pacientes/${a.patientId}`} onClick={(e) => e.stopPropagation()}>{p?.nome ?? '—'}</Link>
                     <div className="small muted">{a.motivo || 'Consulta'} · {a.duracaoMin}min</div>
+                    {dentName(a.dentistaId) && <div className="small dent">👤 {dentName(a.dentistaId)}</div>}
                     {p && iso >= today && (a.status === 'agendada' || a.status === 'confirmada') && (
                       <div onClick={(e) => e.stopPropagation()}>
                         <WhatsButton

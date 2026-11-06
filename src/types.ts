@@ -1,7 +1,33 @@
 export type ID = string;
 
+export type Role = 'master' | 'admin' | 'dentista' | 'recepcao';
+
+export interface Profile {
+  id: ID;
+  clinicId?: ID;
+  nome: string;
+  email?: string;
+  role: Role;
+  cro?: string;
+  ativo: boolean;
+  criadoEm: string;
+}
+
+export interface Clinic {
+  id: ID;
+  nome: string;
+  ativo: boolean;
+  plano: string;
+  mensalidade?: number;
+  vencimento?: string;
+  settings: Partial<Settings>;
+  criadoEm: string;
+}
+
 export interface Patient {
   id: ID;
+  clinicId?: ID;
+  dentistaId?: ID;
   nome: string;
   telefone: string;
   email?: string;
@@ -17,6 +43,8 @@ export type ProcedureStatus = 'planejado' | 'em_andamento' | 'realizado';
 
 export interface Procedure {
   id: ID;
+  clinicId?: ID;
+  dentistaId?: ID;
   patientId: ID;
   dente: number | null; // número FDI; null = procedimento geral (ex.: limpeza)
   faces?: string[]; // M, D, O/I, V, L/P
@@ -30,20 +58,23 @@ export interface Procedure {
 
 export interface Exam {
   id: ID;
+  clinicId?: ID;
   patientId: ID;
   dentes: number[];
   tipo: string;
   data: string;
   descricao?: string;
-  imagens: string[]; // data URLs
+  imagens: string[]; // caminhos no storage (ou data URLs antigas)
 }
 
 export type AppointmentStatus = 'agendada' | 'confirmada' | 'concluida' | 'faltou' | 'cancelada';
 
 export interface Appointment {
   id: ID;
+  clinicId?: ID;
+  dentistaId?: ID;
   patientId: ID;
-  dataHora: string; // YYYY-MM-DDTHH:mm
+  dataHora: string; // YYYY-MM-DDTHH:mm(:ss) horário local
   duracaoMin: number;
   motivo: string;
   status: AppointmentStatus;
@@ -66,7 +97,7 @@ export interface SentMessage {
 }
 
 export interface Database {
-  versao: number;
+  profiles: Profile[];
   patients: Patient[];
   procedures: Procedure[];
   exams: Exam[];
