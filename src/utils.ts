@@ -121,10 +121,10 @@ export function toothState(procs: Procedure[]): ToothState {
 
 export const STATE_LABEL: Record<ToothState, string> = {
   saudavel: 'Sem registro',
-  planejado: 'A fazer / problema',
+  planejado: 'A tratar',
   em_andamento: 'Em tratamento',
   realizado: 'Tratado',
-  ausente: 'Ausente / extraído',
+  ausente: 'Ausente',
 };
 
 export const STATUS_LABEL: Record<ProcedureStatus, string> = {

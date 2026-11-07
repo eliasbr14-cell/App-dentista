@@ -83,20 +83,20 @@ export function Users() {
     <div className="page">
       <header className="page-head">
         <div>
-          <h1>Usuários</h1>
-          <p className="muted">{clinic?.nome}</p>
+          <h1>Equipe e acessos</h1>
+          <p className="sub">Quem pode entrar no sistema da {clinic?.nome}</p>
         </div>
-        <button className="btn primary" onClick={() => setCreating(true)}>+ Novo usuário</button>
+        <button className="btn primary" onClick={() => setCreating(true)}>Novo usuário</button>
       </header>
 
-      <section className="card">
+      <section className="panel">
         <div className="tabs">
-          <button className={tab === 'users' ? 'on' : ''} onClick={() => setTab('users')}>Equipe ({users.length})</button>
+          <button className={tab === 'users' ? 'on' : ''} onClick={() => setTab('users')}>Equipe <span className="muted">{users.length}</span></button>
           <button className={tab === 'log' ? 'on' : ''} onClick={() => setTab('log')}>Registro de atividades</button>
         </div>
 
         {tab === 'users' && (
-          <table className="table">
+          <div className="table-wrap"><table className="table">
             <thead>
               <tr><th>Nome</th><th className="hide-sm">E-mail</th><th>Perfil</th><th>Situação</th><th></th></tr>
             </thead>
@@ -107,20 +107,20 @@ export function Users() {
                 return (
                   <tr key={u.id} className={u.ativo ? '' : 'inactive'}>
                     <td>
-                      <b>{u.nome}</b>{self && <span className="badge">você</span>}
+                      <b>{u.nome}</b>{self && <span className="tag">Você</span>}
                       {u.cro && <div className="small muted">CRO {u.cro}</div>}
                     </td>
                     <td className="hide-sm">{u.email}</td>
                     <td>
                       {locked ? (
-                        <span className="badge role">{ROLE_LABEL[u.role]}</span>
+                        <span className="tag gold" style={{ marginLeft: 0 }}>{ROLE_LABEL[u.role]}</span>
                       ) : (
                         <select className="inline-select" value={u.role} onChange={(e) => act({ action: 'update', id: u.id, role: e.target.value })}>
                           {(['admin', 'dentista', 'recepcao'] as Role[]).map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
                         </select>
                       )}
                     </td>
-                    <td>{u.ativo ? <span className="badge confirmada">Ativo</span> : <span className="badge cancelada">Desativado</span>}</td>
+                    <td>{u.ativo ? <span className="status ativo">Ativo</span> : <span className="status inativo">Desativado</span>}</td>
                     <td className="actions">
                       {!self && (u.role !== 'master' || can.master) && (
                         <>
@@ -148,18 +148,18 @@ export function Users() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         )}
 
         {tab === 'log' && (
           <ul className="list">
             {log.map((a) => (
               <li key={a.id}>
-                <span className="small muted log-time">{new Date(a.em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                <span className="log-time">{new Date(a.em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>
                 <div className="grow"><b>{who(a.userId)}</b> {what(a)}</div>
               </li>
             ))}
-            {log.length === 0 && <p className="muted">Nenhuma atividade registrada ainda.</p>}
+            {log.length === 0 && <p className="empty-line">Nenhuma atividade registrada ainda.</p>}
           </ul>
         )}
       </section>
@@ -216,7 +216,7 @@ function NewUserForm({
     const text = `Acesso ao sistema ${clinics.find((c) => c.id === f.clinic_id)?.nome ?? ''}\nLink: ${window.location.origin}${window.location.pathname}\nE-mail: ${f.email}\nSenha: ${f.password}\n(troque a senha em "Minha conta" depois de entrar)`;
     return (
       <div>
-        <p className="ok">✓ Usuário criado!</p>
+        <p className="ok">Usuário criado.</p>
         <p className="small muted">Envie os dados de acesso para {f.nome}:</p>
         <pre className="credentials">{text}</pre>
         <div className="form-actions">

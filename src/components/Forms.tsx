@@ -3,6 +3,7 @@ import { useStore } from '../db';
 import { useAuth } from '../auth';
 import { supabase } from '../supabase';
 import { ExamImage } from './ExamImage';
+import { ImagePlus, X } from 'lucide-react';
 import type { Appointment, AppointmentStatus, Exam, Patient, Procedure, ProcedureStatus } from '../types';
 import { ALL_TEETH, EXAM_TYPES, FACES, PROCEDURE_TYPES, toothInfo } from '../teeth';
 import { compressImage, nowLocalInput, STATUS_LABEL, todayISO } from '../utils';
@@ -80,7 +81,7 @@ export function PatientForm({ initial, onDone }: { initial?: Patient; onDone: (p
       <Field label="Endereço" full>
         <input value={f.endereco ?? ''} onChange={s('endereco')} />
       </Field>
-      <Field label="Alergias / medicamentos" full>
+      <Field label="Alergias e medicamentos em uso" full>
         <input placeholder="Ex.: alergia a penicilina, hipertenso…" value={f.alergias ?? ''} onChange={s('alergias')} />
       </Field>
       <Field label="Observações" full>
@@ -153,7 +154,7 @@ export function ProcedureForm({
         </select>
       </Field>
       {f.dente != null && (
-        <Field label="Faces do dente" full>
+        <Field label="Faces" full>
           <div className="chips">
             {FACES.map((fc) => (
               <button
@@ -188,10 +189,10 @@ export function ProcedureForm({
           onChange={(e) => setF({ ...f, valor: e.target.value === '' ? undefined : Number(e.target.value) })}
         />
       </Field>
-      <Field label="Data de retorno (opcional)">
+      <Field label="Retorno (opcional)">
         <input type="date" value={f.retorno ?? ''} onChange={(e) => setF({ ...f, retorno: e.target.value })} />
       </Field>
-      <Field label="Descrição / anotações" full>
+      <Field label="Anotações" full>
         <textarea rows={3} value={f.descricao ?? ''} onChange={(e) => setF({ ...f, descricao: e.target.value })} />
       </Field>
       <Actions
@@ -258,13 +259,17 @@ export function ExamForm({ patientId, initial, dente, onDone }: { patientId: str
       <Field label="Data">
         <input type="date" required value={f.data ?? ''} onChange={(e) => setF({ ...f, data: e.target.value })} />
       </Field>
-      <Field label="Dentes envolvidos (ex.: 26, 27 — vazio = boca toda)" full>
+      <Field label="Dentes (separe por vírgula; deixe vazio para boca toda)" full>
         <input value={dentesTxt} onChange={(e) => setDentesTxt(e.target.value)} placeholder="26, 27" />
       </Field>
-      <Field label="Imagens (raio-X, foto…)" full>
-        <input type="file" accept="image/*" multiple onChange={(e) => addFiles(e.target.files)} />
+      <Field label="Imagens" full>
+        <span className="dropzone">
+          <ImagePlus />
+          <span><b>Adicionar imagens</b><br /><span className="small">Raio-X, foto intraoral ou tomografia em JPG/PNG</span></span>
+          <input type="file" accept="image/*" multiple hidden onChange={(e) => addFiles(e.target.files)} />
+        </span>
       </Field>
-      {busy && <p className="muted full">Enviando imagem…</p>}
+      {busy && <p className="muted small full">Enviando imagem…</p>}
       {!!f.imagens?.length && (
         <div className="thumbs full">
           {f.imagens.map((src, i) => (
@@ -277,13 +282,13 @@ export function ExamForm({ patientId, initial, dente, onDone }: { patientId: str
                   if (!src.startsWith('data:') && !initial?.imagens.includes(src)) supabase.storage.from('exames').remove([src]);
                   setF({ ...f, imagens: f.imagens!.filter((_, j) => j !== i) });
                 }} aria-label="Remover imagem">
-                ✕
+                <X />
               </button>
             </div>
           ))}
         </div>
       )}
-      <Field label="Laudo / observações" full>
+      <Field label="Laudo" full>
         <textarea rows={3} value={f.descricao ?? ''} onChange={(e) => setF({ ...f, descricao: e.target.value })} />
       </Field>
       <Actions onCancel={onDone} onDelete={initial ? () => confirm('Excluir este exame e as imagens?') && (remove('exams', initial.id), onDone()) : undefined} />

@@ -5,9 +5,15 @@ import { useAuth } from '../auth';
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="login-bg">
-      <div className="login-card">
-        <img src="./logo.png" alt="Imperium Odonto — Clínica Odontológica" className="login-logo" />
-        {children}
+      <div className="login-art">
+        <img src="./logo.png" alt="Imperium Odonto, clínica odontológica" />
+      </div>
+      <div className="login-side">
+        <div className="login-card">
+          <img src="./logo.png" alt="Imperium Odonto, clínica odontológica" className="login-logo" />
+          {children}
+          <p className="login-foot">Acesso restrito à equipe da clínica.</p>
+        </div>
       </div>
     </div>
   );
@@ -71,10 +77,10 @@ export function Login() {
       {mode === 'setup' && (
         <form onSubmit={setup} className="login-form">
           <h1>Configuração inicial</h1>
-          <p className="muted small">Crie a conta <b>Admin Master</b> (dono do sistema). Isso só aparece uma vez.</p>
-          <input placeholder="Seu nome" required value={nome} onChange={(e) => setNome(e.target.value)} />
-          <input type="email" placeholder="E-mail" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <input type="password" placeholder="Senha (mínimo 8 caracteres)" minLength={8} required autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} />
+          <p className="lead">Crie a conta Admin Master, a responsável pelo sistema. Esta tela só aparece uma vez.</p>
+          <label>Nome<input required value={nome} onChange={(e) => setNome(e.target.value)} /></label>
+          <label>E-mail<input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
+          <label>Senha<input type="password" placeholder="Mínimo de 8 caracteres" minLength={8} required autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} /></label>
           {msg && <p className={msg.t}>{msg.m}</p>}
           <button className="btn primary block" disabled={busy}>{busy ? 'Criando…' : 'Criar conta Master'}</button>
         </form>
@@ -82,8 +88,10 @@ export function Login() {
 
       {mode === 'login' && (
         <form onSubmit={login} className="login-form">
-          <input type="email" placeholder="E-mail" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <input type="password" placeholder="Senha" required autoComplete="current-password" value={senha} onChange={(e) => setSenha(e.target.value)} />
+          <h1>Entrar</h1>
+          <p className="lead">Use o e-mail e a senha cadastrados pela clínica.</p>
+          <label>E-mail<input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
+          <label>Senha<input type="password" required autoComplete="current-password" value={senha} onChange={(e) => setSenha(e.target.value)} /></label>
           {msg && <p className={msg.t}>{msg.m}</p>}
           <button className="btn primary block" disabled={busy}>{busy ? 'Entrando…' : 'Entrar'}</button>
           <button type="button" className="link center" onClick={() => { setMode('forgot'); setMsg(null); }}>Esqueci minha senha</button>
@@ -92,11 +100,12 @@ export function Login() {
 
       {mode === 'forgot' && (
         <form onSubmit={forgot} className="login-form">
-          <p className="muted small">Informe seu e-mail para receber o link de nova senha. Se não chegar, peça ao administrador para redefinir sua senha.</p>
-          <input type="email" placeholder="E-mail" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <h1>Recuperar senha</h1>
+          <p className="lead">Enviaremos um link para criar uma nova senha. Se o e-mail não chegar, peça ao administrador da clínica para redefinir.</p>
+          <label>E-mail<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
           {msg && <p className={msg.t}>{msg.m}</p>}
-          <button className="btn primary block" disabled={busy}>Enviar link</button>
-          <button type="button" className="link center" onClick={() => { setMode('login'); setMsg(null); }}>Voltar</button>
+          <button className="btn primary block" disabled={busy}>Enviar link de recuperação</button>
+          <button type="button" className="link center" onClick={() => { setMode('login'); setMsg(null); }}>Voltar para o login</button>
         </form>
       )}
     </Shell>
@@ -119,12 +128,12 @@ export function NewPassword({ onDone }: { onDone?: () => void }) {
     if (error) return setMsg(error.message);
     setRecovering(false);
     onDone?.();
-    alert('Senha alterada!');
+    alert('Senha alterada.');
   };
   return (
     <form onSubmit={submit} className="login-form">
-      <input type="password" placeholder="Nova senha (mínimo 8)" minLength={8} required autoComplete="new-password" value={a} onChange={(e) => setA(e.target.value)} />
-      <input type="password" placeholder="Repita a nova senha" minLength={8} required autoComplete="new-password" value={b} onChange={(e) => setB(e.target.value)} />
+      <label>Nova senha<input type="password" placeholder="Mínimo de 8 caracteres" minLength={8} required autoComplete="new-password" value={a} onChange={(e) => setA(e.target.value)} /></label>
+      <label>Repita a nova senha<input type="password" minLength={8} required autoComplete="new-password" value={b} onChange={(e) => setB(e.target.value)} /></label>
       {msg && <p className="err">{msg}</p>}
       <button className="btn primary block" disabled={busy}>Salvar nova senha</button>
     </form>
@@ -135,6 +144,7 @@ export function RecoveryScreen() {
   return (
     <Shell>
       <h1>Criar nova senha</h1>
+      <p className="lead">Escolha uma senha nova para entrar no sistema.</p>
       <NewPassword />
     </Shell>
   );
@@ -144,7 +154,8 @@ export function NoAccess({ reason }: { reason: string }) {
   const { signOut } = useAuth();
   return (
     <Shell>
-      <p className="center">{reason}</p>
+      <h1>Sem acesso</h1>
+      <p className="lead">{reason}</p>
       <button className="btn ghost block" onClick={signOut}>Sair</button>
     </Shell>
   );

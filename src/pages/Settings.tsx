@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Download } from 'lucide-react';
 import { DEFAULT_SETTINGS, useStore } from '../db';
 import type { Settings as S } from '../types';
 import { fillTemplate, nowLocalInput, todayISO } from '../utils';
@@ -35,7 +36,7 @@ export function Settings() {
         <span>{title}</span>
         <textarea rows={4} value={f[k]} onChange={s(k)} />
       </label>
-      <div className="bubble">{preview(f[k])}</div>
+      <div className="bubble"><div>{preview(f[k])}</div></div>
     </div>
   );
 
@@ -46,7 +47,7 @@ export function Settings() {
       </header>
 
       <form
-        className="card"
+        className="panel panel-body"
         onSubmit={async (e) => {
           e.preventDefault();
           setState('saving');
@@ -59,7 +60,7 @@ export function Settings() {
           }
         }}
       >
-        <h2>Consultório</h2>
+        <h2 style={{ marginBottom: 16 }}>Consultório</h2>
         <div className="form-grid">
           <label className="field"><span>Nome do consultório</span><input required value={f.nomeClinica} onChange={s('nomeClinica')} /></label>
           <label className="field"><span>Assinatura das mensagens (dentista)</span><input placeholder="Ex.: Dr. Fulano — Implantodontista" value={f.nomeDentista} onChange={s('nomeDentista')} /></label>
@@ -68,15 +69,16 @@ export function Settings() {
         </div>
 
         <h2 className="mt">Mensagens de WhatsApp</h2>
+        <p className="muted small" style={{ margin: '4px 0 8px' }}>À direita, uma prévia de como o paciente recebe.</p>
         <p className="muted small">
-          Variáveis que você pode usar: {VARS.map((v) => <code key={v}>{v}</code>)}
+          Campos automáticos: {VARS.map((v) => <code key={v}>{v}</code>)}
         </p>
-        {tpl('templateAniversario', '🎂 Parabéns (aniversário)')}
-        {tpl('templateLembrete', '⏰ Lembrete de consulta')}
-        {tpl('templateRetorno', '🔁 Chamar para retorno')}
+        {tpl('templateAniversario', 'Aniversário')}
+        {tpl('templateLembrete', 'Lembrete de consulta')}
+        {tpl('templateRetorno', 'Convite para retorno')}
 
         <div className="form-actions">
-          {state === 'saved' && <span className="ok">✓ Salvo</span>}
+          {state === 'saved' && <span className="ok">Configurações salvas</span>}
           <span className="spacer" />
           <button
             type="button"
@@ -89,13 +91,13 @@ export function Settings() {
         </div>
       </form>
 
-      <section className="card">
-        <h2>Cópia dos dados</h2>
+      <section className="panel panel-body">
+        <h2 style={{ marginBottom: 6 }}>Cópia dos dados</h2>
         <p className="muted small">
-          Os dados ficam guardados com segurança no servidor (com backup automático). Se quiser uma cópia extra, baixe aqui — o arquivo contém
-          dados de saúde dos pacientes (LGPD), guarde em local seguro.
+          Os dados ficam guardados no servidor. Para ter uma cópia extra, baixe o arquivo abaixo e guarde em local seguro:
+          ele contém dados de saúde dos pacientes, protegidos pela LGPD.
         </p>
-        <button className="btn ghost" onClick={exportar}>⬇ Baixar cópia (JSON)</button>
+        <button className="btn ghost" style={{ marginTop: 14 }} onClick={exportar}><Download /> Baixar cópia dos dados</button>
       </section>
     </div>
   );

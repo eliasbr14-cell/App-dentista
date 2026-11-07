@@ -45,12 +45,12 @@ export function Clinics() {
       <header className="page-head">
         <div>
           <h1>Consultórios</h1>
-          <p className="muted">Área do Admin Master · receita mensal: <b>{fmtMoney(total) || 'R$ 0,00'}</b></p>
+          <p className="sub">Receita mensal dos consultórios ativos: <b>{fmtMoney(total) || 'R$ 0,00'}</b></p>
         </div>
-        <button className="btn primary" onClick={() => setEdit({ ativo: true })}>+ Novo consultório</button>
+        <button className="btn primary" onClick={() => setEdit({ ativo: true })}>Novo consultório</button>
       </header>
 
-      <div className="card no-pad">
+      <div className="panel table-wrap">
         <table className="table">
           <thead>
             <tr><th>Consultório</th><th>Situação</th><th>Mensalidade</th><th>Vencimento</th><th className="hide-sm">Usuários</th><th className="hide-sm">Pacientes</th><th></th></tr>
@@ -61,8 +61,8 @@ export function Clinics() {
               const soon = c.vencimento && !late && daysBetween(today, c.vencimento) <= 5;
               return (
                 <tr key={c.id} onClick={() => setEdit(c)}>
-                  <td><b>{c.nome}</b>{current?.id === c.id && <span className="badge">aberto</span>}</td>
-                  <td>{c.ativo ? <span className="badge confirmada">Ativo</span> : <span className="badge faltou">Bloqueado</span>}</td>
+                  <td><b>{c.nome}</b>{current?.id === c.id && <span className="tag gold">Aberto</span>}</td>
+                  <td>{c.ativo ? <span className="status ativo">Ativo</span> : <span className="status bloqueado">Bloqueado</span>}</td>
                   <td>{fmtMoney(c.mensalidade) || '—'}</td>
                   <td className={late ? 'late' : soon ? 'warn-text' : ''}>{c.vencimento ? fmtDate(c.vencimento) : '—'}{late && ' (vencido)'}</td>
                   <td className="hide-sm">{counts[c.id]?.users ?? 0}</td>

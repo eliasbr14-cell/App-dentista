@@ -20,12 +20,14 @@ const SIZE: Record<ToothKind, { w: number; h: number }> = {
   molar: { w: 1.22, h: 1.12 },
 };
 
+const STATE_KIND: Record<ToothState, string> = { saudavel: '', planejado: 'planejado', em_andamento: 'em_andamento', realizado: 'realizado', ausente: '' };
+
 export const STATE_COLORS: Record<ToothState, { fill: string; stroke: string }> = {
-  saudavel: { fill: 'var(--tooth-healthy)', stroke: 'var(--tooth-stroke)' },
-  planejado: { fill: '#f87171', stroke: '#b91c1c' },
-  em_andamento: { fill: '#fb923c', stroke: '#c2410c' },
-  realizado: { fill: '#60a5fa', stroke: '#1d4ed8' },
-  ausente: { fill: 'transparent', stroke: '#94a3b8' },
+  saudavel: { fill: '#ece8df', stroke: '#9a968e' },
+  planejado: { fill: '#e46a6a', stroke: '#f3b1b1' },
+  em_andamento: { fill: '#e8a43f', stroke: '#f6d29a' },
+  realizado: { fill: '#5d87e0', stroke: '#b4c8f3' },
+  ausente: { fill: 'transparent', stroke: '#5c5a55' },
 };
 
 interface Placed {
@@ -155,12 +157,12 @@ export function Odontogram({ procedures, exams, selected, onSelect, decidua }: P
   return (
     <div className="odontogram" ref={wrap} onMouseLeave={() => setHover(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Odontograma">
-        <text className="arch-label" x={CX} y={UPPER_CY - 40}>ARCADA SUPERIOR</text>
-        <text className="arch-label" x={CX} y={LOWER_CY + 52}>ARCADA INFERIOR</text>
-        <text className="side-label" x={28} y={H / 2 + 5}>Direito</text>
-        <text className="side-label" x={W - 28} y={H / 2 + 5}>Esquerdo</text>
+        <text className="arch-label" x={CX} y={UPPER_CY - 40}>Arcada superior</text>
+        <text className="arch-label" x={CX} y={LOWER_CY + 52}>Arcada inferior</text>
+        <text className="side-label" x={46} y={H / 2 + 4}>Direito</text>
+        <text className="side-label" x={W - 46} y={H / 2 + 4}>Esquerdo</text>
         <line className="midline" x1={CX} x2={CX} y1={20} y2={H - 20} />
-        <line className="midline" x1={60} x2={W - 60} y1={H / 2} y2={H / 2} />
+        <line className="midline" x1={90} x2={W - 90} y1={H / 2} y2={H / 2} />
 
         {placed.map((t) => {
           const data = byTooth.get(t.n);
@@ -184,7 +186,7 @@ export function Odontogram({ procedures, exams, selected, onSelect, decidua }: P
                 {st === 'ausente' && (
                   <path className="tooth-x" d={`M${-t.w * 0.3},${-t.h * 0.3} L${t.w * 0.3},${t.h * 0.3} M${t.w * 0.3},${-t.h * 0.3} L${-t.w * 0.3},${t.h * 0.3}`} />
                 )}
-                {hasExam && <circle className="exam-dot" cx={t.w * 0.36} cy={-t.h * 0.36} r={5.5} />}
+                {hasExam && <circle className="exam-dot" cx={t.w * 0.36} cy={-t.h * 0.36} r={5} />}
               </g>
               <text className="tooth-num" x={t.lx} y={t.ly + 4}>{t.n}</text>
             </g>
@@ -204,14 +206,13 @@ export function Odontogram({ procedures, exams, selected, onSelect, decidua }: P
             Dente {hover.n} <span>— {hoverInfo.completo}</span>
           </div>
           <div className="tt-state">
-            <i style={{ background: STATE_COLORS[toothState(hv?.procs ?? [])].fill }} />
-            {STATE_LABEL[toothState(hv?.procs ?? [])]}
+            <span className={`status ${STATE_KIND[toothState(hv?.procs ?? [])]}`}>{STATE_LABEL[toothState(hv?.procs ?? [])]}</span>
           </div>
           {hv?.procs.length ? (
             <ul>
               {hv.procs.slice(0, 3).map((p) => (
                 <li key={p.id}>
-                  <b>{p.tipo}</b> · {STATUS_LABEL[p.status]} · {fmtDate(p.data)}
+                  <b>{p.tipo}</b>, {STATUS_LABEL[p.status].toLowerCase()}, {fmtDate(p.data)}
                 </li>
               ))}
               {hv.procs.length > 3 && <li className="muted">+{hv.procs.length - 3} registros</li>}
@@ -223,12 +224,12 @@ export function Odontogram({ procedures, exams, selected, onSelect, decidua }: P
             <div className="tt-exams">
               {hv.exams[0].imagens[0] && <ExamImage path={hv.exams[0].imagens[0]} alt="" />}
               <span>
-                {hv.exams.length} exame(s)<br />
-                <small>{hv.exams[0].tipo} · {fmtDate(hv.exams[0].data)}</small>
+                {hv.exams.length === 1 ? '1 exame' : `${hv.exams.length} exames`}<br />
+                <small className="muted">{hv.exams[0].tipo}, {fmtDate(hv.exams[0].data)}</small>
               </span>
             </div>
           ) : null}
-          <div className="tt-hint">Clique para ver tudo</div>
+          <div className="tt-hint">Clique para abrir o histórico</div>
         </div>
       )}
     </div>
@@ -245,7 +246,7 @@ export function Legend() {
         </span>
       ))}
       <span>
-        <i className="dot" /> Tem exame / raio-X
+        <i className="dot" /> Com exame
       </span>
     </div>
   );
